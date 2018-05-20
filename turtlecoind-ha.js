@@ -134,6 +134,7 @@ TurtleCoind.prototype.start = function () {
     }
   }
   this.sycned = false
+  this.firstCheckPassed = false
 
   var args = this._buildargs()
   this.child = pty.spawn(this.path, args, {
@@ -202,6 +203,7 @@ TurtleCoind.prototype._checkChildStdio = function (data) {
 }
 
 TurtleCoind.prototype._triggerDown = function () {
+  if (!this.firstCheckPassed) return
   if (!this.trigger) {
     this.trigger = setTimeout(() => {
       this.emit('down')
@@ -210,6 +212,7 @@ TurtleCoind.prototype._triggerDown = function () {
 }
 
 TurtleCoind.prototype._triggerUp = function () {
+  if (!this.firstCheckPassed) this.firstCheckPassed = true
   if (this.trigger) {
     clearTimeout(this.trigger)
     this.trigger = null
