@@ -4,6 +4,7 @@ const TurtleCoind = require('./')
 const util = require('util')
 
 var daemon = new TurtleCoind({
+  loadCheckpoints: './checkpoints.csv'
   // Load additional daemon parameters here
 })
 
