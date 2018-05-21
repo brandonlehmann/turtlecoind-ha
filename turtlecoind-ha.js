@@ -65,6 +65,7 @@ const TurtleCoind = function (opts) {
   // if we find the ~ HOME shortcut in the paths, we need to replace those manually
   if (this.loadCheckpoints) {
     this.loadCheckpoints = this.loadCheckpoints.replace('~', os.homedir())
+    this.loadCheckpoints = path.resolve(this.loadCheckpoints)
   }
   this.path = this.path.replace('~', os.homedir())
   this.dataDir = this.dataDir.replace('~', os.homedir())
