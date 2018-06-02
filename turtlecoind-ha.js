@@ -1,25 +1,38 @@
 'use strict'
 
+const TurtleCoindRPC = require('./lib/turtlecoind-rpc.js')
+const WebSocket = require('./lib/websocket.js')
 const pty = require('node-pty')
 const util = require('util')
 const inherits = require('util').inherits
 const EventEmitter = require('events').EventEmitter
-const request = require('request-promise')
 const fs = require('fs')
 const path = require('path')
 const os = require('os')
 const shelljs = require('shelljs')
 
 const daemonResponses = {
-  synced: 'Successfully synchronized with the TurtleCoin Network.',
   started: 'P2p server initialized OK',
-  help: 'Show this help'
+  help: 'Show this help',
+  block: 'New Top Block Detected:'
 }
 const blockTargetTime = 30
 
 const TurtleCoind = function (opts) {
   opts = opts || {}
   if (!(this instanceof TurtleCoind)) return new TurtleCoind(opts)
+
+  this.pollingInterval = opts.pollingInterval || 10000
+  this.maxPollingFailures = opts.maxPollingFailures || 3
+  this.checkHeight = opts.checkHeight || true
+  this.maxDeviance = opts.maxDeviance || 5
+  this.clearP2pOnStart = opts.clearP2pOnStart || true
+  this.clearDBLockFile = opts.clearDBLockFile || true
+  this.timeout = opts.timeout || 2000
+  this.enableWebSocket = opts.enableWebSocket || true
+  this.webSocketPassword = opts.webSocketPassword || false
+
+  // Begin TurtleCoind options
   this.path = opts.path || path.resolve(__dirname, './TurtleCoind')
   this.dataDir = opts.dataDir || path.resolve(os.homedir(), './.TurtleCoin')
   this.testnet = opts.testnet || false
@@ -42,37 +55,60 @@ const TurtleCoind = function (opts) {
   this.dbWriteBufferSize = opts.dbWriteBufferSize || false
   this.dbReadCacheSize = opts.dbReadCacheSize || false
 
-  // These values control how often we check the daemon and how long we are
-  // willing to wait for responses
-  this.pollingInterval = opts.pollingInterval || 10000
-  this.maxPollingFailures = opts.maxPollingFailures || 3
-  this.timeout = opts.timeout || 2000
-
-  // These values are related to the checking of the daemon once it's in synced
-  // if we detect that the daemon falls out of sync, do we trigger a down event?
-  this.checkHeight = opts.checkHeight || true
-  this.maxDeviance = opts.maxDeviance || 5
-
-  // This will automatically clear the P2P state file upon daemon start
-  this.clearP2pOnStart = opts.clearP2pOnStart || true
-
-  // This will automatically clear the DB LOCK file if we find it
-  this.clearDBLockFile = opts.clearDBLockFile || true
-
-  // We could query ourselves via 0.0.0.0 but I prefer 127.0.0.1
+  // starting sanity checks
   this._rpcQueryIp = (this.rpcBindIp === '0.0.0.0') ? '127.0.0.1' : this.rpcBindIp
 
-  // if we find the ~ HOME shortcut in the paths, we need to replace those manually
+  // make sure our paths make sense
   if (this.loadCheckpoints) {
-    this.loadCheckpoints = this.loadCheckpoints.replace('~', os.homedir())
-    this.loadCheckpoints = path.resolve(this.loadCheckpoints)
+    this.loadCheckpoints = fixPath(this.loadCheckpoints)
   }
-  this.path = this.path.replace('~', os.homedir())
-  this.dataDir = this.dataDir.replace('~', os.homedir())
+  this.path = fixPath(this.path)
+  this.dataDir = fixPath(this.dataDir)
 
-  // for sanity sake we always resolve our paths
-  this.path = path.resolve(this.path)
-  this.dataDir = path.resolve(this.dataDir)
+  this.once('start', () => {
+    this._setupWebSocket()
+    this._setupAPI()
+  })
+
+  this.on('started', () => {
+    this.syncWatchIntervalPtr = setInterval(() => {
+      this.api.getHeight().then((result) => {
+        var percent = precisionRound(((result.height / result.network_height) * 100), 2)
+        if (result.height > result.network_height) { // when we know more than what the network is reporting, we can't be at 100%
+          percent = 99
+        } else {
+          if (percent > 100) percent = 100
+        }
+        this.emit('syncing', {height: result.height, network_height: result.network_height, percent: percent})
+        if (result.height === result.network_height && result.height > 1) {
+          this._checkServices()
+          this.synced = true
+          this.emit('synced')
+        }
+      })
+    }, this.pollingInterval)
+  })
+
+  this.on('synced', () => {
+    if (this.syncWatchIntervalPtr) {
+      clearInterval(this.syncWatchIntervalPtr)
+      delete this.syncWatchIntervalPtr
+    }
+  })
+
+  this.on('topblock', (height) => {
+    if (this.synced) {
+      this.api.getLastBlockHeader().then((block) => {
+        return this.api.getBlock({
+          hash: block.hash
+        })
+      }).then((block) => {
+        this.emit('block', block)
+      }).catch((err) => {
+        this.emit('error', err)
+      })
+    }
+  })
 }
 inherits(TurtleCoind, EventEmitter)
 
@@ -124,7 +160,7 @@ TurtleCoind.prototype.start = function () {
     }
   }
   if (this.clearP2pOnStart) {
-    var p2pfile = path.resolve(util.format('%s/p2pstate.bin', this.datDir))
+    var p2pfile = path.resolve(util.format('%s/p2pstate.bin', this.dataDir))
     if (fs.existsSync(p2pfile)) {
       try {
         fs.unlinkSync(p2pfile)
@@ -134,7 +170,7 @@ TurtleCoind.prototype.start = function () {
       }
     }
   }
-  this.sycned = false
+  this.synced = false
   this.firstCheckPassed = false
 
   var args = this._buildargs()
@@ -153,9 +189,13 @@ TurtleCoind.prototype.start = function () {
   })
   this.child.on('data', (data) => {
     data = data.trim()
-    this._checkChildStdio(data)
-    this.emit('data', data)
+    data = data.split('\r\n')
+    for (var i = 0; i < data.length; i++) {
+      this._checkChildStdio(data[i])
+      this.emit('data', data[i])
+    }
   })
+
   this.child.on('close', (exitcode) => {
     // as crazy as this sounds, we need to pause a moment before bubbling up the stopped event
     setTimeout(() => {
@@ -186,20 +226,18 @@ TurtleCoind.prototype.write = function (data) {
 }
 
 TurtleCoind.prototype._checkChildStdio = function (data) {
-  if (data.indexOf(daemonResponses.synced) !== -1 && !this.synced) {
-    this._getHeight().then((height) => {
-      if (height.network_height === height.height) {
-        this._checkServices()
-        this.synced = true
-        this.emit('synced')
-      }
-    }).catch((err) => {
-      this.emit('error', err)
-    })
-  } else if (data.indexOf(daemonResponses.started) !== -1) {
+  if (data.indexOf(daemonResponses.started) !== -1) {
     this.emit('started')
   } else if (data.indexOf(daemonResponses.help) !== -1) {
     this.help = true
+  } else if (data.indexOf(daemonResponses.block) !== -1) {
+    try {
+      data = data.split(daemonResponses.block)
+      data = parseInt(data[1].trim())
+      this.emit('topblock', data)
+    } catch (err) {
+      this.emit('error', err)
+    }
   }
 }
 
@@ -255,9 +293,9 @@ TurtleCoind.prototype._checkServices = function () {
 TurtleCoind.prototype._checkRpc = function () {
   return new Promise((resolve, reject) => {
     Promise.all([
-      this._getInfo(),
-      this._getHeight(),
-      this._getTransactions()
+      this.api.getInfo(),
+      this.api.getHeight(),
+      this.api.getTransactions()
     ]).then((results) => {
       if (results[0].height === results[1].height && results[0].status === results[1].status && results[1].status === results[2].status) {
         return resolve(results)
@@ -283,50 +321,6 @@ TurtleCoind.prototype._checkDaemon = function () {
 
 TurtleCoind.prototype._write = function (data) {
   this.child.write(data)
-}
-
-TurtleCoind.prototype._queryRpc = function (method) {
-  return new Promise((resolve, reject) => {
-    request({
-      method: 'GET',
-      uri: util.format('http://%s:%s/%s', this.rpcBindIp, this.rpcBindPort, method),
-      timeout: this.timeout
-    }).then((data) => {
-      return resolve(JSON.parse(data))
-    }).catch((err) => {
-      return reject(err)
-    })
-  })
-}
-
-TurtleCoind.prototype._getInfo = function () {
-  return new Promise((resolve, reject) => {
-    this._queryRpc('getinfo').then((data) => {
-      return resolve(data)
-    }).catch((err) => {
-      return reject(util.format('Could not get /getInfo: %s', err))
-    })
-  })
-}
-
-TurtleCoind.prototype._getHeight = function () {
-  return new Promise((resolve, reject) => {
-    this._queryRpc('getheight').then((data) => {
-      return resolve(data)
-    }).catch((err) => {
-      return reject(util.format('Could not get /getheight: %s', err))
-    })
-  })
-}
-
-TurtleCoind.prototype._getTransactions = function () {
-  return new Promise((resolve, reject) => {
-    this._queryRpc('gettransactions').then((data) => {
-      return resolve(data)
-    }).catch((err) => {
-      return reject(util.format('Could not get /gettransactions: %s', err))
-    })
-  })
 }
 
 TurtleCoind.prototype._buildargs = function () {
@@ -374,6 +368,124 @@ TurtleCoind.prototype._buildargs = function () {
   if (this.dbWriteBufferSize) args = util.format('%s --db-write-buffer-size %s', args, this.dbWriteBufferSize)
   if (this.dbReadCacheSize) args = util.format('%s --db-read-cache-size %s', args, this.dbReadCacheSize)
   return args.split(' ')
+}
+
+TurtleCoind.prototype._setupAPI = function () {
+  this.api = new TurtleCoindRPC({
+    host: this.rpcBindIp,
+    port: this.rpcBindPort,
+    timeout: this.timeout
+  })
+}
+
+TurtleCoind.prototype._setupWebSocket = function () {
+  if (this.enableWebSocket) {
+    this.webSocket = new WebSocket({
+      port: (this.rpcBindPort + 1),
+      password: this.webSocketPassword
+    })
+
+    this.webSocket.on('connection', (socket) => {
+      this.emit('info', util.format('[WEBSOCKET] Client connected with socketId: %s', socket.id))
+    })
+
+    this.webSocket.on('disconnect', (socket) => {
+      this.emit('info', util.format('[WEBSOCKET] Client disconnected with socketId: %s', socket.id))
+    })
+
+    this.webSocket.on('error', (err) => {
+      this.emit('error', util.format('[WEBSOCKET] %s', err))
+    })
+
+    this.webSocket.on('auth.success', (socket) => {
+      this.emit('info', util.format('[WEBSOCKET] Client authenticated with socketId: %s', socket.id))
+    })
+
+    this.webSocket.on('auth.failure', (socket) => {
+      this.emit('warning', util.format('[WEBSOCKET] Client failed authentication with socketId: %s', socket.id))
+    })
+
+    this.webSocket.on('ready', () => {
+      if (this.webSocketPassword) {
+        this.emit('info', util.format('Accepting WebSocket connections on %s:%s with password: %s', this.rpcBindIp, (this.rpcBindPort + 1), this.webSocket.password))
+      } else {
+        this.emit('info', util.format('Accepting WebSocket connections on %s:%s', this.rpcBindIp, (this.rpcBindPort + 1)))
+      }
+    })
+
+    this.webSocket.on('error', (err) => {
+      this.error(util.format('WebSocket Error: %s', err))
+    })
+
+    this.on('stopped', (exitcode) => {
+      this.webSocket.broadcastProtected({event: 'stopped', data: exitcode})
+    })
+
+    this.on('data', (data) => {
+      this.webSocket.broadcastProtected({event: 'data', data})
+    })
+
+    this.on('error', (err) => {
+      this.webSocket.broadcastProtected({event: 'error', data: err})
+    })
+
+    this.on('info', (info) => {
+      this.webSocket.broadcastProtected({event: 'info', data: info})
+    })
+
+    this.on('warning', (warning) => {
+      this.webSocket.broadcastProtected({event: 'info', data: warning})
+    })
+
+    this.on('start', () => {
+      this.webSocket.broadcastProtected({event: 'start'})
+    })
+
+    this.on('started', () => {
+      this.webSocket.broadcastProtected({event: 'started'})
+    })
+
+    this.on('down', () => {
+      this.webSocket.broadcastProtected({event: 'down'})
+    })
+
+    this.on('syncing', (info) => {
+      this.webSocket.broadcastProtected({event: 'syncing', data: info})
+    })
+
+    this.on('synced', () => {
+      this.webSocket.broadcastProtected({event: 'synced'})
+    })
+
+    this.on('ready', (info) => {
+      this.webSocket.broadcastProtected({event: 'ready', data: info})
+    })
+
+    this.on('desync', () => {
+      this.webSocket.broadcastProtected({event: 'desync'})
+    })
+
+    this.on('topblock', (height) => {
+      this.webSocket.broadcast({event: 'topblock', data: height})
+    })
+
+    this.on('block', (block) => {
+      this.webSocket.broadcast({event: 'block', data: block})
+    })
+  }
+}
+
+function fixPath (oldPath) {
+  if (!oldPath) return false
+  oldPath = oldPath.replace('~', os.homedir())
+  oldPath = path.resolve(oldPath)
+  return oldPath
+}
+
+// This is here because it has to be
+function precisionRound (number, precision) {
+  var factor = Math.pow(10, precision)
+  return Math.round(number * factor) / factor
 }
 
 module.exports = TurtleCoind

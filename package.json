@@ -1,6 +1,6 @@
 {
   "name": "turtlecoind-daemon-ha",
-  "version": "0.4.3",
+  "version": "0.5.1",
   "description": "Wraps the Turtlecoind Daemon and helps keep the daemon synchronized and ready for connections.",
   "main": "turtlecoind-ha.js",
   "scripts": {
@@ -10,9 +10,11 @@
   "license": "GPL",
   "dependencies": {
     "node-pty": "^0.7.4",
-    "request": "^2.85.0",
+    "request": "^2.87.0",
     "request-promise": "^4.2.2",
-    "shelljs": "^0.8.1"
+    "sha256": "^0.2.0",
+    "shelljs": "^0.8.1",
+    "socket.io": "^2.1.1"
   },
   "devDependencies": {
     "standard": "^11.0.1"
