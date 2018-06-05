@@ -85,6 +85,8 @@ const TurtleCoind = function (opts) {
           this.synced = true
           this.emit('synced')
         }
+      }).catch((err) => {
+        this.emit('warning', err)
       })
     }, this.pollingInterval)
   })
