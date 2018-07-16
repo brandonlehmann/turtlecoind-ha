@@ -4,7 +4,22 @@ const TurtleCoind = require('./')
 const util = require('util')
 
 var daemon = new TurtleCoind({
-  loadCheckpoints: './checkpoints.csv'
+  loadCheckpoints: './checkpoints.csv',
+  priorityNodes: [
+    '159.65.137.156:11897',
+	'159.65.131.182:11897',
+	'159.65.131.222:11897',
+	'167.99.47.137:11897',
+	'167.99.47.174:11897',
+	'167.99.32.75:11897',
+	'165.227.194.76:11897',
+	'165.227.199.84:11897',
+	'198.199.66.14:11897',
+	'167.99.101.97:11897',
+	'167.99.103.93:11897',
+	'167.99.169.150:11897',
+	'165.227.252.132:11897'
+  ]
   // Load additional daemon parameters here
 })
 
