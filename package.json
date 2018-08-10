@@ -1,20 +1,32 @@
 {
-  "name": "turtlecoind-daemon-ha",
-  "version": "0.5.1",
+  "name": "turtlecoind-ha",
+  "version": "0.8.0",
   "description": "Wraps the Turtlecoind Daemon and helps keep the daemon synchronized and ready for connections.",
-  "main": "turtlecoind-ha.js",
+  "main": "index.js",
   "scripts": {
     "test": "standard"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brandonlehmann/turtlecoind-ha.git"
+  },
+  "keywords": [
+    "TurtleCoin",
+    "wrapper",
+    "high-availability",
+    "API",
+    "RPC",
+    "websocket"
+  ],
   "author": "Brandon Lehmann <brandonlehmann@gmail.com>",
-  "license": "GPL",
+  "license": "AGPL-3.0",
   "dependencies": {
     "node-pty": "^0.7.4",
-    "request": "^2.87.0",
-    "request-promise": "^4.2.2",
+    "nonce": "^1.0.4",
     "sha256": "^0.2.0",
     "shelljs": "^0.8.1",
-    "socket.io": "^2.1.1"
+    "socket.io": "^2.1.1",
+    "turtlecoin-rpc": "^0.8.0"
   },
   "devDependencies": {
     "standard": "^11.0.1"

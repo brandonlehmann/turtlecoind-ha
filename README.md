@@ -92,7 +92,9 @@ var daemon = new TurtleCoind({
   dbThreads: 2, // Number of database background threads
   dbMaxOpenFiles: 100, // Number of allowed open files for the DB
   dbWriteBufferSize: 256, // Size of the DB write buffer in MB
-  dbReadCacheSize: 10 // Size of the DB read cache in MB
+  dbReadCacheSize: 10, // Size of the DB read cache in MB
+  feeAddress: false, // allows to specify the fee address for the node
+  feeAmount: 0 // allows to specify the fee amount for the node
 })
 ```
 
@@ -768,7 +770,7 @@ Gets a block hash by height.
 }
 ```
 
-### daemon.api.getHeight()
+### daemon.api.getInfo()
 
 #### Sample Data
 
@@ -831,30 +833,89 @@ A WebSocket [socket.io](https://socket.io/) server is initialized if ```enableWe
 
 Some events require that the socket is authenticated via a ```auth``` event.
 
+If the **nonce** column is *Yes* you may send a *nonce* in the payload in addition to the options defined. 
+
 ### Client Initiated Events
 
-|Event|Payload|
-|---|---|
-|auth|*string* sha256 hash of password|
+|Event|JSON Payload|Nonce Honored|Payload|
+|---|---|---|---|
+|auth|No|No|*string* sha256 hash of password|
+|getBlocks|Yes|Yes|See [daemon.api.getBlocks(options)](#daemonapigetblocksoptions)|
+|getBlock|Yes|Yes|See [daemon.api.getBlocks(options)](#daemonapigetblocksoptions)|
+|getTransaction|Yes|Yes|See [daemon.api.getTransaction(options)](#daemonapigettransactionoptions)|
+|getTransactionPool|Yes|Yes|See [daemon.api.getTransactionPool()](#daemonapigettransactionpool)|
+|getBlockCount|Yes|Yes|See [daemon.api.getBlockCount()](#daemonapigetblockcount)|
+|getBlockHash|Yes|Yes|See [daemon.api.getBlockHash(options)](#daemonapigetblockhashoptions)|
+|getBlockTemplate|Yes|Yes|See [daemon.api.getBlockTemplate(options)](#daemonapigetblocktemplateoptions)|
+|submitBlock|Yes|Yes|See [daemon.api.submitBlock(options)](#daemonapisubmitblockoptions)|
+|getLastBlockHeader|Yes|Yes|See [daemon.api.getLastBlockHeader()](#daemonapigetlastblockheader)|
+|getBlockHeaderByHash|Yes|Yes|See [daemon.api.getBlockHeaderByHash(options)](#daemonapigetblockheaderbyhashoptions)|
+|getBlockHeaderByHeight|Yes|Yes|See [daemon.api.getBlockHeaderByHeight(options)](#daemonapigetblockheaderbyheightoptions)|
+|getCurrencyId|Yes|Yes|See [daemon.api.getCurrencyId()](#daemonapigetcurrencyid)|
+|getHeight|Yes|Yes|See [daemon.api.getHeight()](#daemonapigetheight)|
+|getInfo|Yes|Yes|See [daemon.api.getInfo()](#daemonapigetinfo)|
+|getTransactions|Yes|Yes|See [daemon.api.getTransactions()](#daemonapigettransactions)|
+|getPeers|Yes|Yes|See [daemon.api.getPeers()](#daemonapigetpeers)|
+|sendRawTransaction|Yes|Yes|See [daemon.api.sendRawTransaction()](#daemonapisendrawtransaction)|
+
 
 ### Server Initiated Events
 
 |Event|Authentication Required|Payload|
 |---|---|---|
-|auth|No|*boolean* Responds to a client initiated *auth* event. If **true** the password was correct. If **false** the password was incorrect.|
-|block|No|See [Event - block](#event---block)|
-|stopped|Yes|*integer* TurtleCoind exitcode upon close|
-|data|Yes|*string* Console output of TurtleCoind|
-|desync|Yes||
-|down|Yes||
-|error|Yes|*string* Error message|
-|info|Yes|*string* Information message|
-|ready|Yes||See [Event - ready](#event---ready)|
-|start|Yes||
-|started|Yes||
-|synced|Yes||
+|block|**No**|See [Event - block](#event---block)|
+|stopped|Yes|See [Event - stopped](#event---stopped)|
+|data|Yes|See [Event - data](#event---data)|
+|desync|Yes|See [Event - desync](#event---desync)|
+|down|Yes|See [Event - down](#event---down)|
+|error|Yes|See [Event - error](#event---error)|
+|info|Yes|See [Event - info](#event---info)|
+|ready|Yes|See [Event - ready](#event---ready)|
+|start|Yes|See [Event - start](#event---start)|
+|started|Yes|See [Event - started](#event---started)|
+|synced|Yes|See [Event - synced](#event---synced)|
 |syncing|Yes|See [Event - syncing](#event---syncing)|
-|topblock|No|See [Event - topblock](#event---topblock)|
-|warning|Yes|*string* Warning message|
+|topblock|**No**|See [Event - topblock](#event---topblock)|
+|warning|Yes|*See [Event - warning](#event---warning)|
+
+### Server Responses
+
+All responses except for ***auth*** return data in the same format.
+
+```javascript
+{
+  "nonce": 123456,
+  "data": <payload>
+}
+```
+|Event|Nonced|Payload|
+|---|---|---|
+|auth|No|*boolean* Responds to a client initiated *auth* event. If **true** the password was correct. If **false** the password was incorrect.|
+|getBlocks|Yes|See [daemon.api.getBlocks(options)](#daemonapigetblocksoptions)|
+|getBlock|Yes|See [daemon.api.getBlocks(options)](#daemonapigetblocksoptions)|
+|getTransaction|Yes|See [daemon.api.getTransaction(options)](#daemonapigettransactionoptions)|
+|getTransactionPool|Yes|See [daemon.api.getTransactionPool()](#daemonapigettransactionpool)|
+|getBlockCount|Yes|See [daemon.api.getBlockCount()](#daemonapigetblockcount)|
+|getBlockHash|Yes|See [daemon.api.getBlockHash(options)](#daemonapigetblockhashoptions)|
+|getBlockTemplate|Yes|See [daemon.api.getBlockTemplate(options)](#daemonapigetblocktemplateoptions)|
+|submitBlock|Yes|See [daemon.api.submitBlock(options)](#daemonapisubmitblockoptions)|
+|getLastBlockHeader|Yes|See [daemon.api.getLastBlockHeader()](#daemonapigetlastblockheader)|
+|getBlockHeaderByHash|Yes|See [daemon.api.getBlockHeaderByHash(options)](#daemonapigetblockheaderbyhashoptions)|
+|getBlockHeaderByHeight|Yes|See [daemon.api.getBlockHeaderByHeight(options)](#daemonapigetblockheaderbyheightoptions)|
+|getCurrencyId|Yes|See [daemon.api.getCurrencyId()](#daemonapigetcurrencyid)|
+|getHeight|Yes|See [daemon.api.getHeight()](#daemonapigetheight)|
+|getInfo|Yes|See [daemon.api.getInfo()](#daemonapigetinfo)|
+|getTransactions|Yes|See [daemon.api.getTransactions()](#daemonapigettransactions)|
+|getPeers|Yes|See [daemon.api.getPeers()](#daemonapigetpeers)|
+|sendRawTransaction|Yes|See [daemon.api.sendRawTransaction()](#daemonapisendrawtransaction)|
 
 
+## License
+
+Copyright (C) 2018 Brandon Lehmann, The TurtleCoin Developers
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
