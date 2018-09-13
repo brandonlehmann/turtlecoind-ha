@@ -33,7 +33,7 @@ const TurtleCoind = function (opts) {
     used if you don't specify them when you create the object.
   */
   this.pollingInterval = opts.pollingInterval || 10000
-  this.maxPollingFailures = opts.maxPollingFailures || 3
+  this.maxPollingFailures = opts.maxPollingFailures || 6
   this.checkHeight = opts.checkHeight || true
   this.maxDeviance = opts.maxDeviance || 5
   this.clearP2pOnStart = opts.clearP2pOnStart || true
@@ -43,7 +43,7 @@ const TurtleCoind = function (opts) {
   this.webSocketPassword = opts.webSocketPassword || false
 
   // Begin TurtleCoind options
-  this.path = opts.path || path.resolve(__dirname, './TurtleCoind')
+  this.path = opts.path || path.resolve(__dirname, './TurtleCoind' + ((os.platform() === 'win32') ? '.exe' : ''))
   this.dataDir = opts.dataDir || path.resolve(os.homedir(), './.TurtleCoin')
   this.testnet = opts.testnet || false
   this.enableCors = opts.enableCors || false

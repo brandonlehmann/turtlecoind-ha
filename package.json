@@ -1,10 +1,11 @@
 {
   "name": "turtlecoind-ha",
-  "version": "0.8.0",
+  "version": "0.8.4",
   "description": "Wraps the Turtlecoind Daemon and helps keep the daemon synchronized and ready for connections.",
   "main": "index.js",
   "scripts": {
-    "test": "standard"
+    "postinstall": "npm run checkpoints",
+    "checkpoints": "rm -f checkpoints.csv && curl https://github.com/turtlecoin/checkpoints/raw/master/checkpoints.csv --output checkpoints.csv"
   },
   "repository": {
     "type": "git",
@@ -26,7 +27,7 @@
     "sha256": "^0.2.0",
     "shelljs": "^0.8.1",
     "socket.io": "^2.1.1",
-    "turtlecoin-rpc": "^0.8.0"
+    "turtlecoin-rpc": "^0.8.3"
   },
   "devDependencies": {
     "standard": "^11.0.1"
