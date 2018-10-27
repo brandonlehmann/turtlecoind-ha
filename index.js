@@ -342,7 +342,7 @@ TurtleCoind.prototype._buildargs = function () {
   if (this.dataDir) args = util.format('%s --data-dir %s', args, this.dataDir)
   if (this.testnet) args = util.format('%s --testnet', args)
   if (this.enableCors) args = util.format('%s --enable-cors %s', args, this.enableCors)
-  if (this.enableBlockExplorer) args = util.format('%s --enable_blockexplorer', args)
+  if (this.enableBlockExplorer) args = util.format('%s --enable-blockexplorer', args)
   if (this.loadCheckpoints) {
     if (fs.existsSync(path.resolve(this.loadCheckpoints))) {
       args = util.format('%s --load-checkpoints %s', args, path.resolve(this.loadCheckpoints))
