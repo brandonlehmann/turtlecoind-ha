@@ -1,3 +1,7 @@
+[![NPM](https://nodei.co/npm/turtlecoind-ha.png?downloads=true&stars=true)](https://nodei.co/npm/turtlecoind-ha/)
+
+[![Build Status](https://travis-ci.org/brandonlehmann/turtlecoind-ha.png?branch=master)](https://travis-ci.org/brandonlehmann/turtlecoind-ha) [![Build Status](https://ci.appveyor.com/api/projects/status/github/brandonlehmann/turtlecoind-ha?branch=master&svg=true)](https://ci.appveyor.com/project/brandonlehmann/turtlecoind-ha/branch/master)
+
 # TurtleCoind High-Availability Daemon Wrapper
 
 This project is designed to wrap the TurtleCoind daemon on a *nix system and monitor it for hangups, locks, fork, or other events that cause the daemon to stop responding to requests in an accurate manner.
@@ -30,7 +34,7 @@ N/A
 You *must* copy ```TurtleCoind``` into the ```turtlecoind-ha``` folder for the easy start process to occur.
 
 ```bash
-git clone https://github.com/brandonlehmann/turtlecoind-ha.git
+git clone https://github.com/turtlecoin/turtlecoind-ha.git
 cd turtlecoind-ha
 cp <TurtleCoind> .
 npm i & node service.js

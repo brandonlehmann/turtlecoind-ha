@@ -4,8 +4,7 @@
   "description": "Wraps the Turtlecoind Daemon and helps keep the daemon synchronized and ready for connections.",
   "main": "index.js",
   "scripts": {
-    "postinstall": "npm run checkpoints",
-    "checkpoints": "rm -f checkpoints.csv && curl https://github.com/turtlecoin/checkpoints/raw/master/checkpoints.csv --output checkpoints.csv"
+    "postinstall": "node checkpoints.js"
   },
   "repository": {
     "type": "git",
