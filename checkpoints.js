@@ -11,7 +11,7 @@ fs.unlink('checkpoints.csv', (err) => {
     console.log('Deleting old checkpoints file...')
   }
 
-    /* Download the new checkpoints file */
+  /* Download the new checkpoints file */
   download('https://github.com/turtlecoin/checkpoints/raw/master/checkpoints.csv', 'checkpoints.csv', (err) => {
     if (err) {
       throw err
