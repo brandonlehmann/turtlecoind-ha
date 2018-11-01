@@ -25,7 +25,7 @@ var daemon = new TurtleCoind({
     '165.227.252.132:11897'
   ],
   feeAddress: 'TRTLv1pacKFJk9QgSmzk2LJWn14JGmTKzReFLz1RgY3K9Ryn7783RDT2TretzfYdck5GMCGzXTuwKfePWQYViNs4avKpnUbrwfQ',
-  feeAmount: 250000,
+  feeAmount: 350000,
   dbReadCacheSize: 1000,
   maxPollingFailures: 10
   // Load additional daemon parameters here
