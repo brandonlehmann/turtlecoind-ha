@@ -12,7 +12,7 @@ fs.unlink('checkpoints.csv', (err) => {
   }
 
   /* Download the new checkpoints file */
-  download('https://github.com/turtlecoin/checkpoints/raw/master/checkpoints.csv', 'checkpoints.csv', (err) => {
+  download('https://raw.githubusercontent.com/turtlecoin/checkpoints/master/checkpoints.csv', 'checkpoints.csv', (err) => {
     if (err) {
       throw err
     }
