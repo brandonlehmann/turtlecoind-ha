@@ -45,6 +45,8 @@ const TurtleCoind = function (opts) {
   // Begin TurtleCoind options
   this.path = opts.path || path.resolve(__dirname, './TurtleCoind' + ((os.platform() === 'win32') ? '.exe' : ''))
   this.dataDir = opts.dataDir || path.resolve(os.homedir(), './.TurtleCoin')
+  this.logFile = opts.logFile || path.resolve(__dirname, './TurtleCoind.log')
+  this.logLevel = opts.logLevel || 2
   this.testnet = opts.testnet || false
   this.enableCors = opts.enableCors || false
   this.enableBlockExplorer = opts.enableBlockExplorer || true
@@ -339,6 +341,8 @@ TurtleCoind.prototype._write = function (data) {
 TurtleCoind.prototype._buildargs = function () {
   var args = ''
   if (this.dataDir) args = util.format('%s --data-dir %s', args, this.dataDir)
+  if (this.logFile) args = util.format('%s --log-file %s', args, this.logFile)
+  if (this.logLevel) args = util.format('%s --log-level %s', args, this.logLevel)
   if (this.testnet) args = util.format('%s --testnet', args)
   if (this.enableCors) args = util.format('%s --enable-cors %s', args, this.enableCors)
   if (this.enableBlockExplorer) args = util.format('%s --enable-blockexplorer', args)
