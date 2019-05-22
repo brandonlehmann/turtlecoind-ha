@@ -31,5 +31,7 @@
   "devDependencies": {
     "standard": "^11.0.1"
   },
-  "optionalDependencies": {}
+  "peerDependencies": {
+    "@pm2/io": "^4.2.0"
+  }
 }
