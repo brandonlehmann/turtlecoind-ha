@@ -1,4 +1,4 @@
-// Copyright (c) 2018, Brandon Lehmann, The TurtleCoin Developers
+// Copyright (c) 2018-2019, Brandon Lehmann, The TurtleCoin Developers
 //
 // Please see the included LICENSE file for more information.
 
@@ -7,17 +7,26 @@
 const TurtleCoind = require('./')
 const util = require('util')
 
-
-let metrics = []
+const metrics = []
 try {
   const pm2Metrics = require('@pm2/io')
+
   log('@pm2/io module installed, enabling custom metrics...')
-  for (let [ name, unit ]  of [ [ "Status", false ], [ "Progress", "percent"], [ "Blockheight", "blocks" ], [ "Net hash", "h/s" ], [ "Difficulty", false ] ]) {
+
+  const metricSet = [
+    { name: 'Status', unit: false },
+    { name: 'Progress', unit: 'percent' },
+    { name: 'Blockheight', unit: 'blocks' },
+    { name: 'Net hash', unit: 'h/s' },
+    { name: 'Difficulty', unit: false }
+  ]
+
+  metricSet.forEach((metric) => {
     metrics.push(pm2Metrics.metric({
-      name: name,
-      unit: unit,
+      name: metric.name,
+      unit: metric.unit
     }))
-  }
+  })
 } catch (error) {
   log('@pm2/io module not installed, ignoring...')
 }
@@ -31,31 +40,31 @@ function log (message) {
   console.log(util.format('%s: %s', (new Date()).toUTCString(), message))
 }
 
-function resetMetrics(metrics) {
-  for (let metric of metrics) {
+function resetMetrics (metrics) {
+  metrics.forEach((metric) => {
     metric.set(undefined)
-  }
+  })
 }
 
 daemon.on('start', (args) => {
   log(util.format('TurtleCoind has started... %s', args))
-  if (metrics != undefined && metrics.length !== 0) {
+  if (metrics.length !== 0) {
     resetMetrics(metrics)
-    metrics[0].set('starting');
+    metrics[0].set('starting')
   }
 })
 
 daemon.on('started', () => {
   log('TurtleCoind is attempting to synchronize with the network...')
-  if (metrics != undefined && metrics.length !== 0) {
+  if (metrics.length !== 0) {
     resetMetrics(metrics)
-    metrics[0].set('started');
+    metrics[0].set('started')
   }
 })
 
 daemon.on('syncing', (info) => {
   log(util.format('TurtleCoind has synchronized %s out of %s blocks [%s%]', info.height, info.network_height, info.percent))
-  if (metrics != undefined && metrics.length !== 0) {
+  if (metrics.length !== 0) {
     resetMetrics(metrics)
     metrics[0].set('synchronizing')
     metrics[1].set(`${info.height}/${info.network_height} (${info.percent}%)`)
@@ -64,7 +73,7 @@ daemon.on('syncing', (info) => {
 
 daemon.on('synced', () => {
   log('TurtleCoind is synchronized with the network...')
-  if (metrics != undefined && metrics.length !== 0) {
+  if (metrics.length !== 0) {
     resetMetrics(metrics)
     metrics[0].set('synchronized')
   }
@@ -72,7 +81,7 @@ daemon.on('synced', () => {
 
 daemon.on('ready', (info) => {
   log(util.format('TurtleCoind is waiting for connections at %s @ %s - %s H/s', info.height, info.difficulty, info.globalHashRate))
-  if (metrics != undefined && metrics.length !== 0) {
+  if (metrics.length !== 0) {
     metrics[0].set('waiting for connections')
     metrics[2].set(info.height)
     metrics[3].set(info.globalHashRate)
@@ -82,16 +91,16 @@ daemon.on('ready', (info) => {
 
 daemon.on('desync', (daemon, network, deviance) => {
   log(util.format('TurtleCoind is currently off the blockchain by %s blocks. Network: %s  Daemon: %s', deviance, network, daemon))
-  if (metrics != undefined && metrics.length !== 0) {
+  if (metrics.length !== 0) {
     resetMetrics(metrics)
     metrics[0].set('desynchronized')
-    metrics[1].set(`${info.daemon}/${info.network}`)
+    metrics[1].set(`${daemon}/${network}`)
   }
 })
 
 daemon.on('down', () => {
   log('TurtleCoind is not responding... stopping process...')
-  if (metrics != undefined && metrics.length !== 0) {
+  if (metrics.length !== 0) {
     resetMetrics(metrics)
     metrics[0].set('down')
   }
@@ -100,7 +109,7 @@ daemon.on('down', () => {
 
 daemon.on('stopped', (exitcode) => {
   log(util.format('TurtleCoind has closed (exitcode: %s)... restarting process...', exitcode))
-  if (metrics != undefined && metrics.length !== 0) {
+  if (metrics.length !== 0) {
     resetMetrics(metrics)
     metrics[0].set(`stopped (code: ${exitcode})`)
   }
