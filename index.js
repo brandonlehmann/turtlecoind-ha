@@ -93,7 +93,7 @@ const TurtleCoind = function (opts) {
         } else {
           if (percent > 100) percent = 100
         }
-        this.emit('syncing', {height: result.height, network_height: result.network_height, percent: percent})
+        this.emit('syncing', { height: result.height, network_height: result.network_height, percent: percent })
         if (result.height === result.network_height && result.height > 1) {
           this._checkServices()
           this.synced = true
@@ -438,59 +438,59 @@ TurtleCoind.prototype._setupWebSocket = function () {
     })
 
     this.on('stopped', (exitcode) => {
-      this.webSocket.broadcastProtected({event: 'stopped', data: exitcode})
+      this.webSocket.broadcastProtected({ event: 'stopped', data: exitcode })
     })
 
     this.on('data', (data) => {
-      this.webSocket.broadcastProtected({event: 'data', data})
+      this.webSocket.broadcastProtected({ event: 'data', data })
     })
 
     this.on('error', (err) => {
-      this.webSocket.broadcastProtected({event: 'error', data: err})
+      this.webSocket.broadcastProtected({ event: 'error', data: err })
     })
 
     this.on('info', (info) => {
-      this.webSocket.broadcastProtected({event: 'info', data: info})
+      this.webSocket.broadcastProtected({ event: 'info', data: info })
     })
 
     this.on('warning', (warning) => {
-      this.webSocket.broadcastProtected({event: 'info', data: warning})
+      this.webSocket.broadcastProtected({ event: 'info', data: warning })
     })
 
     this.on('start', () => {
-      this.webSocket.broadcastProtected({event: 'start'})
+      this.webSocket.broadcastProtected({ event: 'start' })
     })
 
     this.on('started', () => {
-      this.webSocket.broadcastProtected({event: 'started'})
+      this.webSocket.broadcastProtected({ event: 'started' })
     })
 
     this.on('down', () => {
-      this.webSocket.broadcastProtected({event: 'down'})
+      this.webSocket.broadcastProtected({ event: 'down' })
     })
 
     this.on('syncing', (info) => {
-      this.webSocket.broadcastProtected({event: 'syncing', data: info})
+      this.webSocket.broadcastProtected({ event: 'syncing', data: info })
     })
 
     this.on('synced', () => {
-      this.webSocket.broadcastProtected({event: 'synced'})
+      this.webSocket.broadcastProtected({ event: 'synced' })
     })
 
     this.on('ready', (info) => {
-      this.webSocket.broadcastProtected({event: 'ready', data: info})
+      this.webSocket.broadcastProtected({ event: 'ready', data: info })
     })
 
     this.on('desync', () => {
-      this.webSocket.broadcastProtected({event: 'desync'})
+      this.webSocket.broadcastProtected({ event: 'desync' })
     })
 
     this.on('topblock', (height) => {
-      this.webSocket.broadcast({event: 'topblock', data: height})
+      this.webSocket.broadcast({ event: 'topblock', data: height })
     })
 
     this.on('block', (block) => {
-      this.webSocket.broadcast({event: 'block', data: block})
+      this.webSocket.broadcast({ event: 'block', data: block })
     })
   }
 }
@@ -514,9 +514,9 @@ TurtleCoind.prototype._registerWebSocketClientEvents = function (socket) {
         }
         data.nonce = data.nonce || nonce()
         that.api[evt](data).then((result) => {
-          socket.emit(evt, {nonce: data.nonce, data: result})
+          socket.emit(evt, { nonce: data.nonce, data: result })
         }).catch((err) => {
-          socket.emit(evt, {nonce: data.nonce, error: err.toString()})
+          socket.emit(evt, { nonce: data.nonce, error: err.toString() })
         })
       })
     })()
