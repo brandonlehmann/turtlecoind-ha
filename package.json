@@ -1,6 +1,6 @@
 {
   "name": "turtlecoind-ha",
-  "version": "0.12.1",
+  "version": "0.14.0",
   "description": "Wraps the Turtlecoind Daemon and helps keep the daemon synchronized and ready for connections.",
   "main": "index.js",
   "scripts": {
