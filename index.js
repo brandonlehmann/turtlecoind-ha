@@ -39,7 +39,7 @@ const TurtleCoind = function (opts) {
   this.clearP2pOnStart = opts.clearP2pOnStart || true
   this.clearDBLockFile = opts.clearDBLockFile || true
   this.timeout = opts.timeout || 2000
-  this.enableWebSocket = opts.enableWebSocket || true
+  this.enableWebSocket = opts.enableWebSocket || false
   this.webSocketPassword = opts.webSocketPassword || false
 
   // Begin TurtleCoind options
@@ -47,9 +47,9 @@ const TurtleCoind = function (opts) {
   this.dataDir = opts.dataDir || path.resolve(os.homedir(), './.TurtleCoin')
   this.logFile = opts.logFile || path.resolve(__dirname, './TurtleCoind.log')
   this.logLevel = opts.logLevel || 2
-  this.testnet = opts.testnet || false
   this.enableCors = opts.enableCors || false
   this.enableBlockExplorer = opts.enableBlockExplorer || true
+  this.enableBlockExplorerDetailed = opts.enableBlockExplorerDetailed || false
   this.loadCheckpoints = opts.loadCheckpoints || false
   this.rpcBindIp = opts.rpcBindIp || '0.0.0.0'
   this.rpcBindPort = opts.rpcBindPort || 11898
@@ -66,6 +66,7 @@ const TurtleCoind = function (opts) {
   this.dbMaxOpenFiles = opts.dbMaxOpenFiles || false
   this.dbWriteBufferSize = opts.dbWriteBufferSize || false
   this.dbReadBufferSize = opts.dbReadBufferSize || false
+  this.dbCompression = opts.dbCompression || false
   this.feeAddress = opts.feeAddress || false
   this.feeAmount = opts.feeAmount || 0
 
@@ -343,9 +344,9 @@ TurtleCoind.prototype._buildargs = function () {
   if (this.dataDir) args = util.format('%s --data-dir %s', args, this.dataDir)
   if (this.logFile) args = util.format('%s --log-file %s', args, this.logFile)
   if (this.logLevel) args = util.format('%s --log-level %s', args, this.logLevel)
-  if (this.testnet) args = util.format('%s --testnet', args)
   if (this.enableCors) args = util.format('%s --enable-cors %s', args, this.enableCors)
   if (this.enableBlockExplorer) args = util.format('%s --enable-blockexplorer', args)
+  if (this.enableBlockExplorerDetailed) args = util.format('%s --enable-blockexplorer-detailed', args)
   if (this.loadCheckpoints) {
     if (fs.existsSync(path.resolve(this.loadCheckpoints))) {
       args = util.format('%s --load-checkpoints %s', args, path.resolve(this.loadCheckpoints))
@@ -384,6 +385,7 @@ TurtleCoind.prototype._buildargs = function () {
   if (this.dbMaxOpenFiles) args = util.format('%s --db-max-open-files %s', args, this.dbMaxOpenFiles)
   if (this.dbWriteBufferSize) args = util.format('%s --db-write-buffer-size %s', args, this.dbWriteBufferSize)
   if (this.dbReadBufferSize) args = util.format('%s --db-read-buffer-size %s', args, this.dbReadBufferSize)
+  if (this.dbCompression) args = util.format('%s --db-enable-compression', args)
   if (this.feeAddress) args = util.format('%s --fee-address %s', args, this.feeAddress)
   if (this.feeAmount !== 0) args = util.format('%s --fee-amount %s', args, this.feeAmount)
   return args.split(' ')
