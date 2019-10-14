@@ -4,7 +4,9 @@
   "description": "Wraps the Turtlecoind Daemon and helps keep the daemon synchronized and ready for connections.",
   "main": "index.js",
   "scripts": {
-    "postinstall": "node checkpoints.js"
+    "postinstall": "npm run checkpoints",
+    "start": "node service.js",
+    "checkpoints": "node checkpoints.js"
   },
   "repository": {
     "type": "git",

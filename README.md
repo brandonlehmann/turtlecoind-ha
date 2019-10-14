@@ -27,7 +27,7 @@ N/A
 ## Dependencies
 
 * [NodeJS v8.x](https://nodejs.org/)
-* [TurtleCoind](https://github.com/turtlecoin/turtlecoin/releases) v0.8.4 or higher
+* [TurtleCoind](https://github.com/turtlecoin/turtlecoin/releases) v0.19.0 or higher
 
 ## Easy Start
 
@@ -37,10 +37,10 @@ You *must* copy ```TurtleCoind``` into the ```turtlecoind-ha``` folder for the e
 git clone https://github.com/turtlecoin/turtlecoind-ha.git
 cd turtlecoind-ha
 cp <TurtleCoind> .
-sudo npm install & node service.js
+sudo npm install & npm start
 ```
 
-**It is highly recommended that you use [checkpoints](https://github.com/turtlecoin/turtlecoin/wiki/Using-checkpoints) when starting fresh or you'll need to wait a while for the sync to occur.**
+The installation will also download the latest checkpoints. Please see [TurtleCoin Checkpoints](http://checkpoints.turtlecoin.lol) for more information.
 
 ## Keep it Running
 
@@ -54,6 +54,14 @@ pm2 install pm2-logrotate
 
 pm2 start service.js --name turtlecoind
 pm2 save
+```
+
+## Updating Checkpoints
+
+This will download the latest checkpoints to use with your node.
+
+```bash
+npm run checkpoints
 ```
 
 ## Documentation
