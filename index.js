@@ -48,25 +48,24 @@ const TurtleCoind = function (opts) {
   this.logFile = opts.logFile || path.resolve(__dirname, './TurtleCoind.log')
   this.logLevel = opts.logLevel || 2
   this.enableCors = opts.enableCors || false
-  this.enableBlockExplorer = opts.enableBlockExplorer || true
-  this.enableBlockExplorerDetailed = opts.enableBlockExplorerDetailed || false
+  this.enableBlockExplorer = (typeof opts.enableBlockExplorer === 'undefined') ? true : opts.enableBlockExplorer
   this.loadCheckpoints = opts.loadCheckpoints || false
   this.rpcBindIp = opts.rpcBindIp || '0.0.0.0'
   this.rpcBindPort = opts.rpcBindPort || 11898
   this.p2pBindIp = opts.p2pBindIp || false
   this.p2pBindPort = opts.p2pBindPort || false
   this.p2pExternalPort = opts.p2pExternalPort || false
-  this.allowLocalIp = opts.allowLocalIp || false
+  this.allowLocalIp = (typeof opts.allowLocalIp === 'undefined') ? true : opts.allowLocalIp
   this.peers = opts.peers || false
   this.priorityNodes = opts.priorityNodes || false
   this.exclusiveNodes = opts.exclusiveNodes || false
   this.seedNode = opts.seedNode || false
-  this.hideMyPort = opts.hideMyPort || false
+  this.hideMyPort = (typeof opts.hideMyPort === 'undefined') ? true : opts.hideMyPort
   this.dbThreads = opts.dbThreads || false
   this.dbMaxOpenFiles = opts.dbMaxOpenFiles || false
   this.dbWriteBufferSize = opts.dbWriteBufferSize || false
   this.dbReadBufferSize = opts.dbReadBufferSize || false
-  this.dbCompression = opts.dbCompression || false
+  this.dbCompression = (typeof opts.dbCompression === 'undefined') ? true : opts.dbCompression
   this.feeAddress = opts.feeAddress || false
   this.feeAmount = opts.feeAmount || 0
 
@@ -340,7 +339,6 @@ TurtleCoind.prototype._buildargs = function () {
   if (this.logLevel) args = util.format('%s --log-level %s', args, this.logLevel)
   if (this.enableCors) args = util.format('%s --enable-cors %s', args, this.enableCors)
   if (this.enableBlockExplorer) args = util.format('%s --enable-blockexplorer', args)
-  if (this.enableBlockExplorerDetailed) args = util.format('%s --enable-blockexplorer-detailed', args)
   if (this.loadCheckpoints) {
     if (fs.existsSync(path.resolve(this.loadCheckpoints))) {
       args = util.format('%s --load-checkpoints %s', args, path.resolve(this.loadCheckpoints))
