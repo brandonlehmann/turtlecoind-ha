@@ -49,6 +49,7 @@ const TurtleCoind = function (opts) {
   this.logLevel = opts.logLevel || 2
   this.enableCors = opts.enableCors || false
   this.enableBlockExplorer = (typeof opts.enableBlockExplorer === 'undefined') ? true : opts.enableBlockExplorer
+  this.enableBlockExplorerDetailed = (typeof opts.enableBlockExplorerDetailed === 'undefined') ? true : opts.enableBlockExplorerDetailed
   this.loadCheckpoints = opts.loadCheckpoints || false
   this.rpcBindIp = opts.rpcBindIp || '0.0.0.0'
   this.rpcBindPort = opts.rpcBindPort || 11898
@@ -339,6 +340,7 @@ TurtleCoind.prototype._buildargs = function () {
   if (this.logLevel) args = util.format('%s --log-level %s', args, this.logLevel)
   if (this.enableCors) args = util.format('%s --enable-cors %s', args, this.enableCors)
   if (this.enableBlockExplorer) args = util.format('%s --enable-blockexplorer', args)
+  if (this.enableBlockExplorerDetailed) args = util.format('%s --enable-blockexplorer-detailed', args)
   if (this.loadCheckpoints) {
     if (fs.existsSync(path.resolve(this.loadCheckpoints))) {
       args = util.format('%s --load-checkpoints %s', args, path.resolve(this.loadCheckpoints))
