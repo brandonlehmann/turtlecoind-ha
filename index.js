@@ -87,22 +87,22 @@ const TurtleCoind = function (opts) {
 
   this.on('started', () => {
     this.syncWatchIntervalPtr = setInterval(() => {
-      this.api.getHeight().then((result) => {
-        var percent = precisionRound(((result.height / result.network_height) * 100), 2)
-        if (result.height > result.network_height) { // when we know more than what the network is reporting, we can't be at 100%
-          percent = 99
-        } else {
-          if (percent > 100) percent = 100
-        }
-        this.emit('syncing', { height: result.height, network_height: result.network_height, percent: percent })
-        if (result.height === result.network_height && result.height > 1) {
-          this._checkServices()
-          this.synced = true
-          this.emit('synced')
-        }
-      }).catch((err) => {
-        this.emit('warning', err)
-      })
+      return this.api.height()
+        .then(result => {
+          var percent = precisionRound(((result.height / result.network_height) * 100), 2)
+          if (result.height > result.network_height) { // when we know more than what the network is reporting, we can't be at 100%
+            percent = 99
+          } else {
+            if (percent > 100) percent = 100
+          }
+          this.emit('syncing', { height: result.height, network_height: result.network_height, percent: percent })
+          if (result.height === result.network_height && result.height > 1) {
+            this._checkServices()
+            this.synced = true
+            this.emit('synced')
+          }
+        })
+        .catch(err => this.emit('warning', err))
     }, this.pollingInterval)
   })
 
@@ -115,15 +115,10 @@ const TurtleCoind = function (opts) {
 
   this.on('topblock', (height) => {
     if (this.synced) {
-      this.api.getLastBlockHeader().then((block) => {
-        return this.api.getBlock({
-          hash: block.hash
-        })
-      }).then((block) => {
-        this.emit('block', block)
-      }).catch((err) => {
-        this.emit('error', err)
-      })
+      return this.api.lastBlockHeader()
+        .then(block => { return this.api.block(block.hash) })
+        .then(block => this.emit('block', block))
+        .catch(err => this.emit('error', err))
     }
   })
 }
@@ -279,49 +274,48 @@ TurtleCoind.prototype._checkServices = function () {
   if (!this.synced) {
     this.synced = true
     this.checkDaemon = setInterval(() => {
-      Promise.all([
+      return Promise.all([
         this._checkRpc(),
         this._checkDaemon()
-      ]).then((results) => {
-        var info = results[0][0]
-        info.globalHashRate = Math.round(info.difficulty / blockTargetTime)
-        if (this.checkHeight) {
-          var rpcHeight = results[0][1]
-          var deviance = Math.abs(rpcHeight.network_height - rpcHeight.height)
-          if (deviance > this.maxDeviance) {
-            this.emit('desync', rpcHeight.height, rpcHeight.network_height, deviance)
-            this._triggerDown()
+      ])
+        .then(results => {
+          var info = results[0][0]
+          info.globalHashRate = Math.round(info.difficulty / blockTargetTime)
+          if (this.checkHeight) {
+            var rpcHeight = results[0][1]
+            var deviance = Math.abs(rpcHeight.network_height - rpcHeight.height)
+            if (deviance > this.maxDeviance) {
+              this.emit('desync', rpcHeight.height, rpcHeight.network_height, deviance)
+              this._triggerDown()
+            } else {
+              this._triggerUp()
+              this.emit('ready', info)
+            }
           } else {
             this._triggerUp()
             this.emit('ready', info)
           }
-        } else {
-          this._triggerUp()
-          this.emit('ready', info)
-        }
-      }).catch((err) => {
-        this.emit('error', err)
-        this._triggerDown()
-      })
+        })
+        .catch(err => {
+          this.emit('error', err)
+          this._triggerDown()
+        })
     }, this.pollingInterval)
   }
 }
 
 TurtleCoind.prototype._checkRpc = function () {
-  return new Promise((resolve, reject) => {
-    Promise.all([
-      this.api.getInfo(),
-      this.api.getHeight()
-    ]).then((results) => {
+  return Promise.all([
+    this.api.info(),
+    this.api.height()
+  ])
+    .then((results) => {
       if (results[0].height === results[1].height && results[0].status === results[1].status) {
-        return resolve(results)
+        return results
       } else {
-        return reject(new Error('Daemon is returning inconsistent results'))
+        throw new Error('Daemon is returning inconsistent results')
       }
-    }).catch((err) => {
-      return reject(util.format('Daemon is not passing checks...: %s', err))
-    })
-  })
+    }).catch(err => { throw new Error(util.format('Daemon is not passing checks...: %s', err)) })
 }
 
 TurtleCoind.prototype._checkDaemon = function () {
