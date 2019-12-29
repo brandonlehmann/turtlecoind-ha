@@ -34,12 +34,12 @@ const TurtleCoind = function (opts) {
   */
   this.pollingInterval = opts.pollingInterval || 10000
   this.maxPollingFailures = opts.maxPollingFailures || 6
-  this.checkHeight = opts.checkHeight || true
+  this.checkHeight = (typeof opts.checkHeight === 'undefined') ? true : opts.checkHeight
   this.maxDeviance = opts.maxDeviance || 5
-  this.clearP2pOnStart = opts.clearP2pOnStart || true
-  this.clearDBLockFile = opts.clearDBLockFile || true
+  this.clearP2pOnStart = (typeof opts.clearP2pOnStart === 'undefined') ? true : opts.clearP2pOnStart
+  this.clearDBLockFile = (typeof opts.clearDBLockFile === 'undefined') ? true : opts.clearDBLockFile
   this.timeout = opts.timeout || 2000
-  this.enableWebSocket = opts.enableWebSocket || false
+  this.enableWebSocket = (typeof opts.enableWebSocket === 'undefined') ? true : opts.enableWebSocket
   this.webSocketPassword = opts.webSocketPassword || false
 
   // Begin TurtleCoind options
