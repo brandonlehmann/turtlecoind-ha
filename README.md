@@ -27,7 +27,7 @@ N/A
 ## Dependencies
 
 * [NodeJS v8.x](https://nodejs.org/)
-* [TurtleCoind](https://github.com/turtlecoin/turtlecoin/releases) v0.8.4 or higher
+* [TurtleCoind](https://github.com/turtlecoin/turtlecoin/releases) v0.19.0 or higher
 
 ## Easy Start
 
@@ -37,10 +37,10 @@ You *must* copy ```TurtleCoind``` into the ```turtlecoind-ha``` folder for the e
 git clone https://github.com/turtlecoin/turtlecoind-ha.git
 cd turtlecoind-ha
 cp <TurtleCoind> .
-sudo npm install & node service.js
+sudo npm install & npm start
 ```
 
-**It is highly recommended that you use [checkpoints](https://github.com/turtlecoin/turtlecoin/wiki/Using-checkpoints) when starting fresh or you'll need to wait a while for the sync to occur.**
+The installation will also download the latest checkpoints. Please see [TurtleCoin Checkpoints](http://checkpoints.turtlecoin.lol) for more information.
 
 ## Keep it Running
 
@@ -54,6 +54,14 @@ pm2 install pm2-logrotate
 
 pm2 start service.js --name turtlecoind
 pm2 save
+```
+
+## Updating Checkpoints
+
+This will download the latest checkpoints to use with your node.
+
+```bash
+npm run checkpoints
 ```
 
 ## Documentation
@@ -72,15 +80,15 @@ var daemon = new TurtleCoind({
   clearP2pOnStart: true, // Will automatically delete the p2pstate.bin file on start if set to true
   clearDBLockFile: true, // Will automatically delete the DB LOCK file on start if set to true
   timeout: 2000, // How long to wait for RPC responses in milliseconds
-  enableWebSocket: true, // Enables a socket.io websocket server on the rpcBindPort + 1
+  enableWebSocket: false, // Enables a socket.io websocket server on the rpcBindPort + 1
   webSocketPassword: false, // Set this to a password to use for the privileged socket events.
 
   // These are the standard TurtleCoind options
   path: './TurtleCoind', // Where can I find TurtleCoind?
   dataDir: '~/.TurtleCoin', // Where do you store your blockchain?
-  testnet: false, // Use the testnet?
   enableCors: false, // Enable CORS support for the domain in this value
   enableBlockExplorer: true, // Enable the block explorer
+  enableBlockExplorerDetailed: false, // Enable the detailed block explorer
   loadCheckpoints: false, // If set to a path to a file, will supply that file to the daemon if it exists.
   rpcBindIp: '0.0.0.0', // What IP to bind the RPC server to
   rpcBindPort: 11898, // What Port to bind the RPC server to
@@ -96,7 +104,8 @@ var daemon = new TurtleCoind({
   dbThreads: 2, // Number of database background threads
   dbMaxOpenFiles: 100, // Number of allowed open files for the DB
   dbWriteBufferSize: 256, // Size of the DB write buffer in MB
-  dbReadCacheSize: 10, // Size of the DB read cache in MB
+  dbReadBufferSize: 10, // Size of the DB read cache in MB
+  dbCompression: false, // enable rocksdb compression
   feeAddress: false, // allows to specify the fee address for the node
   feeAmount: 0 // allows to specify the fee amount for the node
 })

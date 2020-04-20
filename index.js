@@ -34,12 +34,12 @@ const TurtleCoind = function (opts) {
   */
   this.pollingInterval = opts.pollingInterval || 10000
   this.maxPollingFailures = opts.maxPollingFailures || 6
-  this.checkHeight = opts.checkHeight || true
+  this.checkHeight = (typeof opts.checkHeight === 'undefined') ? true : opts.checkHeight
   this.maxDeviance = opts.maxDeviance || 5
-  this.clearP2pOnStart = opts.clearP2pOnStart || true
-  this.clearDBLockFile = opts.clearDBLockFile || true
+  this.clearP2pOnStart = (typeof opts.clearP2pOnStart === 'undefined') ? true : opts.clearP2pOnStart
+  this.clearDBLockFile = (typeof opts.clearDBLockFile === 'undefined') ? true : opts.clearDBLockFile
   this.timeout = opts.timeout || 2000
-  this.enableWebSocket = opts.enableWebSocket || true
+  this.enableWebSocket = (typeof opts.enableWebSocket === 'undefined') ? true : opts.enableWebSocket
   this.webSocketPassword = opts.webSocketPassword || false
 
   // Begin TurtleCoind options
@@ -47,25 +47,26 @@ const TurtleCoind = function (opts) {
   this.dataDir = opts.dataDir || path.resolve(os.homedir(), './.TurtleCoin')
   this.logFile = opts.logFile || path.resolve(__dirname, './TurtleCoind.log')
   this.logLevel = opts.logLevel || 2
-  this.testnet = opts.testnet || false
   this.enableCors = opts.enableCors || false
-  this.enableBlockExplorer = opts.enableBlockExplorer || true
+  this.enableBlockExplorer = (typeof opts.enableBlockExplorer === 'undefined') ? true : opts.enableBlockExplorer
+  this.enableBlockExplorerDetailed = (typeof opts.enableBlockExplorerDetailed === 'undefined') ? true : opts.enableBlockExplorerDetailed
   this.loadCheckpoints = opts.loadCheckpoints || false
   this.rpcBindIp = opts.rpcBindIp || '0.0.0.0'
   this.rpcBindPort = opts.rpcBindPort || 11898
   this.p2pBindIp = opts.p2pBindIp || false
   this.p2pBindPort = opts.p2pBindPort || false
   this.p2pExternalPort = opts.p2pExternalPort || false
-  this.allowLocalIp = opts.allowLocalIp || false
+  this.allowLocalIp = (typeof opts.allowLocalIp === 'undefined') ? true : opts.allowLocalIp
   this.peers = opts.peers || false
   this.priorityNodes = opts.priorityNodes || false
   this.exclusiveNodes = opts.exclusiveNodes || false
   this.seedNode = opts.seedNode || false
-  this.hideMyPort = opts.hideMyPort || false
+  this.hideMyPort = (typeof opts.hideMyPort === 'undefined') ? true : opts.hideMyPort
   this.dbThreads = opts.dbThreads || false
   this.dbMaxOpenFiles = opts.dbMaxOpenFiles || false
   this.dbWriteBufferSize = opts.dbWriteBufferSize || false
-  this.dbReadCacheSize = opts.dbReadCacheSize || false
+  this.dbReadBufferSize = opts.dbReadBufferSize || false
+  this.dbCompression = (typeof opts.dbCompression === 'undefined') ? true : opts.dbCompression
   this.feeAddress = opts.feeAddress || false
   this.feeAmount = opts.feeAmount || 0
 
@@ -86,22 +87,22 @@ const TurtleCoind = function (opts) {
 
   this.on('started', () => {
     this.syncWatchIntervalPtr = setInterval(() => {
-      this.api.getHeight().then((result) => {
-        var percent = precisionRound(((result.height / result.network_height) * 100), 2)
-        if (result.height > result.network_height) { // when we know more than what the network is reporting, we can't be at 100%
-          percent = 99
-        } else {
-          if (percent > 100) percent = 100
-        }
-        this.emit('syncing', {height: result.height, network_height: result.network_height, percent: percent})
-        if (result.height === result.network_height && result.height > 1) {
-          this._checkServices()
-          this.synced = true
-          this.emit('synced')
-        }
-      }).catch((err) => {
-        this.emit('warning', err)
-      })
+      return this.api.height()
+        .then(result => {
+          var percent = precisionRound(((result.height / result.network_height) * 100), 2)
+          if (result.height > result.network_height) { // when we know more than what the network is reporting, we can't be at 100%
+            percent = 99
+          } else {
+            if (percent > 100) percent = 100
+          }
+          this.emit('syncing', { height: result.height, network_height: result.network_height, percent: percent })
+          if (result.height === result.network_height && result.height > 1) {
+            this._checkServices()
+            this.synced = true
+            this.emit('synced')
+          }
+        })
+        .catch(err => this.emit('warning', err))
     }, this.pollingInterval)
   })
 
@@ -114,15 +115,10 @@ const TurtleCoind = function (opts) {
 
   this.on('topblock', (height) => {
     if (this.synced) {
-      this.api.getLastBlockHeader().then((block) => {
-        return this.api.getBlock({
-          hash: block.hash
-        })
-      }).then((block) => {
-        this.emit('block', block)
-      }).catch((err) => {
-        this.emit('error', err)
-      })
+      return this.api.lastBlockHeader()
+        .then(block => { return this.api.block(block.hash) })
+        .then(block => this.emit('block', block))
+        .catch(err => this.emit('error', err))
     }
   })
 }
@@ -278,49 +274,48 @@ TurtleCoind.prototype._checkServices = function () {
   if (!this.synced) {
     this.synced = true
     this.checkDaemon = setInterval(() => {
-      Promise.all([
+      return Promise.all([
         this._checkRpc(),
         this._checkDaemon()
-      ]).then((results) => {
-        var info = results[0][0]
-        info.globalHashRate = Math.round(info.difficulty / blockTargetTime)
-        if (this.checkHeight) {
-          var rpcHeight = results[0][1]
-          var deviance = Math.abs(rpcHeight.network_height - rpcHeight.height)
-          if (deviance > this.maxDeviance) {
-            this.emit('desync', rpcHeight.height, rpcHeight.network_height, deviance)
-            this._triggerDown()
+      ])
+        .then(results => {
+          var info = results[0][0]
+          info.globalHashRate = Math.round(info.difficulty / blockTargetTime)
+          if (this.checkHeight) {
+            var rpcHeight = results[0][1]
+            var deviance = Math.abs(rpcHeight.network_height - rpcHeight.height)
+            if (deviance > this.maxDeviance) {
+              this.emit('desync', rpcHeight.height, rpcHeight.network_height, deviance)
+              this._triggerDown()
+            } else {
+              this._triggerUp()
+              this.emit('ready', info)
+            }
           } else {
             this._triggerUp()
             this.emit('ready', info)
           }
-        } else {
-          this._triggerUp()
-          this.emit('ready', info)
-        }
-      }).catch((err) => {
-        this.emit('error', err)
-        this._triggerDown()
-      })
+        })
+        .catch(err => {
+          this.emit('error', err)
+          this._triggerDown()
+        })
     }, this.pollingInterval)
   }
 }
 
 TurtleCoind.prototype._checkRpc = function () {
-  return new Promise((resolve, reject) => {
-    Promise.all([
-      this.api.getInfo(),
-      this.api.getHeight()
-    ]).then((results) => {
+  return Promise.all([
+    this.api.info(),
+    this.api.height()
+  ])
+    .then((results) => {
       if (results[0].height === results[1].height && results[0].status === results[1].status) {
-        return resolve(results)
+        return results
       } else {
-        return reject(new Error('Daemon is returning inconsistent results'))
+        throw new Error('Daemon is returning inconsistent results')
       }
-    }).catch((err) => {
-      return reject(util.format('Daemon is not passing checks...: %s', err))
-    })
-  })
+    }).catch(err => { throw new Error(util.format('Daemon is not passing checks...: %s', err)) })
 }
 
 TurtleCoind.prototype._checkDaemon = function () {
@@ -343,9 +338,9 @@ TurtleCoind.prototype._buildargs = function () {
   if (this.dataDir) args = util.format('%s --data-dir %s', args, this.dataDir)
   if (this.logFile) args = util.format('%s --log-file %s', args, this.logFile)
   if (this.logLevel) args = util.format('%s --log-level %s', args, this.logLevel)
-  if (this.testnet) args = util.format('%s --testnet', args)
   if (this.enableCors) args = util.format('%s --enable-cors %s', args, this.enableCors)
   if (this.enableBlockExplorer) args = util.format('%s --enable-blockexplorer', args)
+  if (this.enableBlockExplorerDetailed) args = util.format('%s --enable-blockexplorer-detailed', args)
   if (this.loadCheckpoints) {
     if (fs.existsSync(path.resolve(this.loadCheckpoints))) {
       args = util.format('%s --load-checkpoints %s', args, path.resolve(this.loadCheckpoints))
@@ -383,7 +378,8 @@ TurtleCoind.prototype._buildargs = function () {
   if (this.dbThreads) args = util.format('%s --db-threads %s', args, this.dbThreads)
   if (this.dbMaxOpenFiles) args = util.format('%s --db-max-open-files %s', args, this.dbMaxOpenFiles)
   if (this.dbWriteBufferSize) args = util.format('%s --db-write-buffer-size %s', args, this.dbWriteBufferSize)
-  if (this.dbReadCacheSize) args = util.format('%s --db-read-cache-size %s', args, this.dbReadCacheSize)
+  if (this.dbReadBufferSize) args = util.format('%s --db-read-buffer-size %s', args, this.dbReadBufferSize)
+  if (this.dbCompression) args = util.format('%s --db-enable-compression', args)
   if (this.feeAddress) args = util.format('%s --fee-address %s', args, this.feeAddress)
   if (this.feeAmount !== 0) args = util.format('%s --fee-amount %s', args, this.feeAmount)
   return args.split(' ')
@@ -438,59 +434,59 @@ TurtleCoind.prototype._setupWebSocket = function () {
     })
 
     this.on('stopped', (exitcode) => {
-      this.webSocket.broadcastProtected({event: 'stopped', data: exitcode})
+      this.webSocket.broadcastProtected({ event: 'stopped', data: exitcode })
     })
 
     this.on('data', (data) => {
-      this.webSocket.broadcastProtected({event: 'data', data})
+      this.webSocket.broadcastProtected({ event: 'data', data })
     })
 
     this.on('error', (err) => {
-      this.webSocket.broadcastProtected({event: 'error', data: err})
+      this.webSocket.broadcastProtected({ event: 'error', data: err })
     })
 
     this.on('info', (info) => {
-      this.webSocket.broadcastProtected({event: 'info', data: info})
+      this.webSocket.broadcastProtected({ event: 'info', data: info })
     })
 
     this.on('warning', (warning) => {
-      this.webSocket.broadcastProtected({event: 'info', data: warning})
+      this.webSocket.broadcastProtected({ event: 'info', data: warning })
     })
 
     this.on('start', () => {
-      this.webSocket.broadcastProtected({event: 'start'})
+      this.webSocket.broadcastProtected({ event: 'start' })
     })
 
     this.on('started', () => {
-      this.webSocket.broadcastProtected({event: 'started'})
+      this.webSocket.broadcastProtected({ event: 'started' })
     })
 
     this.on('down', () => {
-      this.webSocket.broadcastProtected({event: 'down'})
+      this.webSocket.broadcastProtected({ event: 'down' })
     })
 
     this.on('syncing', (info) => {
-      this.webSocket.broadcastProtected({event: 'syncing', data: info})
+      this.webSocket.broadcastProtected({ event: 'syncing', data: info })
     })
 
     this.on('synced', () => {
-      this.webSocket.broadcastProtected({event: 'synced'})
+      this.webSocket.broadcastProtected({ event: 'synced' })
     })
 
     this.on('ready', (info) => {
-      this.webSocket.broadcastProtected({event: 'ready', data: info})
+      this.webSocket.broadcastProtected({ event: 'ready', data: info })
     })
 
     this.on('desync', () => {
-      this.webSocket.broadcastProtected({event: 'desync'})
+      this.webSocket.broadcastProtected({ event: 'desync' })
     })
 
     this.on('topblock', (height) => {
-      this.webSocket.broadcast({event: 'topblock', data: height})
+      this.webSocket.broadcast({ event: 'topblock', data: height })
     })
 
     this.on('block', (block) => {
-      this.webSocket.broadcast({event: 'block', data: block})
+      this.webSocket.broadcast({ event: 'block', data: block })
     })
   }
 }
@@ -514,9 +510,9 @@ TurtleCoind.prototype._registerWebSocketClientEvents = function (socket) {
         }
         data.nonce = data.nonce || nonce()
         that.api[evt](data).then((result) => {
-          socket.emit(evt, {nonce: data.nonce, data: result})
+          socket.emit(evt, { nonce: data.nonce, data: result })
         }).catch((err) => {
-          socket.emit(evt, {nonce: data.nonce, error: err.toString()})
+          socket.emit(evt, { nonce: data.nonce, error: err.toString() })
         })
       })
     })()
